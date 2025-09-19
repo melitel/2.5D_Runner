@@ -2,13 +2,15 @@ using UnityEngine;
 
 public class Coin : PooledBehaviour
 {
+    [SerializeField] private IntEventChannelSO coinCollected;
+
     public int value = 10;
 
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player")) return;
 
-        // TODO: Coin Wallet CoinEvents.RaiseCollected(value);
+        coinCollected?.Raise(value);
         Despawn();
     }
 }

@@ -12,7 +12,7 @@ public class SegmentSpawner : MonoBehaviour
     [SerializeField] private float segmentLength = 50f; 
     [SerializeField] private int keepAhead = 3;    //segments to keep ahead     
     [SerializeField] private int keepBehind = 1;   //segments to keep behind
-    //[Tooltip("How many lanes we consider a roadside")]
+    [Tooltip("How many lanes we consider a roadside")]
     [SerializeField] private int lanePadding = 1;
 
     [Header("Lanes")]
@@ -32,7 +32,6 @@ public class SegmentSpawner : MonoBehaviour
     [SerializeField] private ObjectPool rectStaticPool;       
     [SerializeField] private ObjectPool cubeMovingLanePool;   
     [SerializeField] private ObjectPool rectMovingVerticalPool; 
-    [SerializeField, Range(0f, 1f)] private float aboveObstacleCoinChance = 0.5f;
     [SerializeField] private float obstacleY = 0.225f;
     [SerializeField] private LayerMask groundMask;
 
@@ -41,7 +40,6 @@ public class SegmentSpawner : MonoBehaviour
     [SerializeField] private float maxLocalZ = 47f;
     [SerializeField] private LayerMask obstacleMask;
     [SerializeField] private float rayHeight = 6f;
-    [SerializeField] private float airborneOffset = 0.6f;
         
     private readonly LinkedList<Segment> _active = new();
     private Queue<Segment> _segmentPool = new();
@@ -228,18 +226,24 @@ public class SegmentSpawner : MonoBehaviour
             {
                 case 1:
                     if (cubeStaticPool.TryGet(pos, out var o1))
-                    { SetupStatic(o1.transform); o1.transform.SetParent(seg.spawnRoot, true); }
+                    { 
+                        SetupStatic(o1.transform); 
+                        o1.transform.SetParent(seg.spawnRoot, true); 
+                    }
                     break;
 
                 case 2:
                     if (rectStaticPool.TryGet(pos, out var o2))
-                    { SetupStatic(o2.transform); o2.transform.SetParent(seg.spawnRoot, true); }
+                    { 
+                        SetupStatic(o2.transform); 
+                        o2.transform.SetParent(seg.spawnRoot, true); 
+                    }
                     break;
 
                 case 3:
                     if (cubeMovingLanePool.TryGet(pos, out var o3))
                     {
-                        SetupHorizontalMove(o3.transform, laneCount, laneStep, lanePadding);  // ← передаємо padding
+                        SetupHorizontalMove(o3.transform, laneCount, laneStep, lanePadding); 
                         o3.transform.SetParent(seg.spawnRoot, true);
                     }
                     break;
@@ -264,8 +268,6 @@ public class SegmentSpawner : MonoBehaviour
         if (t.TryGetComponent<Rigidbody>(out var rb))
         {
             rb.isKinematic = true;
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
         }
     }
 

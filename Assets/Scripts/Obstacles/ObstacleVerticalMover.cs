@@ -4,8 +4,6 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class ObstacleVerticalMover : MonoBehaviour
 {
-    [SerializeField] float clearance = 0.02f;
-
     Rigidbody rb; 
     Collider col;
     float centerY, startX, startZ;
