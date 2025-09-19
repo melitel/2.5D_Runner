@@ -81,20 +81,4 @@ public class ObstacleLaneMover : MonoBehaviour
         // Apply movement
         rb.MovePosition(p);
     }
-
-    public void SetupRange(int minLaneInclusive, int maxLaneInclusive, float step)
-    {
-        laneStep = step;
-        minLane = minLaneInclusive;
-        maxLane = maxLaneInclusive;
-
-        minX = minLane * laneStep;
-        maxX = maxLane * laneStep;
-
-        dir = Random.value < 0.5f ? -1 : 1;
-
-        var p = (rb ? rb.position : transform.position);
-        p.x = Mathf.Clamp(p.x, minX, maxX);
-        if (rb) rb.position = p; else transform.position = p;
-    }
 }
