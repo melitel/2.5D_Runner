@@ -12,8 +12,14 @@ public class ObjectPool : MonoBehaviour
 
     void Awake()
     {
-        if (!container) container = transform;
-        for (int i = 0; i < prewarm; i++) pool.Enqueue(Create());
+        if (!container)
+        { 
+            container = transform;
+        }
+        for (int i = 0; i < prewarm; i++)
+        { 
+            pool.Enqueue(Create());
+        }
     }
 
     private PooledBehaviour Create()

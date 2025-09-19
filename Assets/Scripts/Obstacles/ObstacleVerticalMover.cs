@@ -1,22 +1,46 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Collider))]
+[RequireComponent(typeof(Rigidbody))]
 public class ObstacleVerticalMover : MonoBehaviour
 {
-    private float baseY;
-    private float amplitude = 1f;
-    private float speed = 1f;
+    [SerializeField] float clearance = 0.02f;
 
-    public void Setup(float baseY, float amplitude, float speed)
+    Rigidbody rb; 
+    Collider col;
+    float centerY, startX, startZ;
+    float amplitude, speed;
+    bool configured;
+
+    public void SetupFromCurrent(float amplitude, float speed)
     {
-        this.baseY = baseY;
-        this.amplitude = amplitude;
-        this.speed = speed;
+        this.amplitude = Mathf.Abs(amplitude);
+        this.speed = Mathf.Abs(speed);
+
+        var p = transform.position;
+        startX = p.x; startZ = p.z;
+
+        // поточна позиція вже стоїть на землі (після SnapToGround)
+        centerY = p.y + this.amplitude;   // min = p.y - amplitude; ми підняли центр на +amp, щоб мінімум не нижче землі
+        rb.position = new Vector3(startX, centerY, startZ);
+
+        configured = true;
     }
 
-    void Update()
+    void Awake()
     {
-        var p = transform.position;
-        p.y = baseY + Mathf.Sin(Time.time * speed) * amplitude;
-        transform.position = p;
+        col = GetComponent<Collider>();
+        rb = GetComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity = false;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+    }
+
+    void FixedUpdate()
+    {
+        if (!configured) return;
+        float y = centerY + Mathf.Sin(Time.time * speed) * amplitude;
+        rb.MovePosition(new Vector3(startX, y, startZ));
     }
 }

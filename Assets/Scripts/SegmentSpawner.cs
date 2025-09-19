@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class SegmentSpawner : MonoBehaviour
@@ -10,18 +11,20 @@ public class SegmentSpawner : MonoBehaviour
     [SerializeField] private GameObject segmentPrefab;  
     [SerializeField] private float segmentLength = 50f; 
     [SerializeField] private int keepAhead = 3;    //segments to keep ahead     
-    [SerializeField] private int keepBehind = 1;   //segments to keep behind       
+    [SerializeField] private int keepBehind = 1;   //segments to keep behind
+    //[Tooltip("How many lanes we consider a roadside")]
+    [SerializeField] private int lanePadding = 1;
 
     [Header("Lanes")]
-    [SerializeField] private int laneCount = 5;
-    [SerializeField] private float laneStep = 1f;
-    [SerializeField] private float groundY = 0.75f;
+    [SerializeField] private int laneCount = 7;
+    [SerializeField] private float laneStep = 1f;    
 
     [Header("Coins (per segment)")]
     [SerializeField] private int coinsPerSegment = 10;
     [SerializeField] private ObjectPool coinPool;
     [SerializeField] private bool coinsCenterWeighted = true;
     [SerializeField] private float coinJitterZ = 0.35f;
+    [SerializeField] private float coinY = 0.75f;
 
     [Header("Obstacles (per segment)")]
     [SerializeField] private int obstaclesPerSegment = 5;
@@ -30,6 +33,8 @@ public class SegmentSpawner : MonoBehaviour
     [SerializeField] private ObjectPool cubeMovingLanePool;   
     [SerializeField] private ObjectPool rectMovingVerticalPool; 
     [SerializeField, Range(0f, 1f)] private float aboveObstacleCoinChance = 0.5f;
+    [SerializeField] private float obstacleY = 0.225f;
+    [SerializeField] private LayerMask groundMask;
 
     [Header("Spawn rules")]
     [SerializeField] private float minLocalZ = 10f;      
@@ -41,7 +46,9 @@ public class SegmentSpawner : MonoBehaviour
     private readonly LinkedList<Segment> _active = new();
     private Queue<Segment> _segmentPool = new();
     private int _half;
-        
+    private int minLanePlayable;
+    private int maxLanePlayable;
+
     private class Segment
     {
         public GameObject go;
@@ -60,7 +67,15 @@ public class SegmentSpawner : MonoBehaviour
         laneCount = Mathf.Max(1, laneCount | 1); 
         _half = (laneCount - 1) / 2;
 
-        // ì³í/ìàêñ ó ìåæàõ ñåãìåíòà
+        lanePadding = Mathf.Clamp(lanePadding, 0, _half);
+        minLanePlayable = -_half + lanePadding;
+        maxLanePlayable = _half - lanePadding;
+        if (minLanePlayable > maxLanePlayable) 
+        { 
+            minLanePlayable = maxLanePlayable = 0; 
+        }
+
+        // min\max in the segment range
         minLocalZ = Mathf.Clamp(minLocalZ, 0f, segmentLength);
         maxLocalZ = Mathf.Clamp(maxLocalZ, 0f, segmentLength);
         if (maxLocalZ <= minLocalZ) maxLocalZ = Mathf.Min(segmentLength - 1f, minLocalZ + 1f);
@@ -68,7 +83,9 @@ public class SegmentSpawner : MonoBehaviour
 
     void Awake()
     {
-        _half = (laneCount - 1) / 2;        
+        _half = (laneCount - 1) / 2;
+        minLanePlayable = -_half + Mathf.Clamp(lanePadding, 0, _half);
+        maxLanePlayable = _half - Mathf.Clamp(lanePadding, 0, _half);
     }
 
     void Start()
@@ -181,28 +198,17 @@ public class SegmentSpawner : MonoBehaviour
             float localZ = Random.Range(minLocalZ, maxLocalZ);
             float z = seg.startZ + localZ + Random.Range(-coinJitterZ, +coinJitterZ);
 
-            int lane = PickLane();
+            int lane = PickPlayableLane();                 
             float x = lane * laneStep;
-                        
-            float y = groundY;
-            //if there is an obstacle under coins, spawn above
+
+            // DO NOT spawn coins over obstacles: if there is something with obstacleMask under the coin â†’ skip it
             Vector3 rayOrigin = new Vector3(x, rayHeight, z);
             if (Physics.Raycast(rayOrigin, Vector3.down, out var hit, rayHeight * 2f, obstacleMask))
-            {
-                if (Random.value <= aboveObstacleCoinChance)
-                {
-                    y = hit.collider.bounds.max.y + airborneOffset;
-                }
-                else
-                { 
-                    continue; 
-                }
-            }
+                continue;
 
+            float y = coinY;
             if (coinPool.TryGet(new Vector3(x, y, z), out var coin))
-            {
                 coin.transform.SetParent(seg.spawnRoot, true);
-            }
         }
     }
 
@@ -213,41 +219,36 @@ public class SegmentSpawner : MonoBehaviour
             float localZ = Random.Range(minLocalZ, maxLocalZ);
             float z = seg.startZ + localZ;
 
-            int type = Random.Range(1, 5); 
-            int lane = PickLane();
+            int type = Random.Range(1, 5);
+            int lane = PickPlayableLane();                  
             float x = lane * laneStep;
-            Vector3 pos = new Vector3(x, groundY, z);
+            Vector3 pos = new Vector3(x, obstacleY, z);
 
             switch (type)
             {
-                case 1: 
+                case 1:
                     if (cubeStaticPool.TryGet(pos, out var o1))
-                    {
-                        SetupStatic(o1.transform);
-                        o1.transform.SetParent(seg.spawnRoot, true);
-                    }
+                    { SetupStatic(o1.transform); o1.transform.SetParent(seg.spawnRoot, true); }
                     break;
 
-                case 2: 
+                case 2:
                     if (rectStaticPool.TryGet(pos, out var o2))
-                    {
-                        SetupStatic(o2.transform);
-                        o2.transform.SetParent(seg.spawnRoot, true);
-                    }
+                    { SetupStatic(o2.transform); o2.transform.SetParent(seg.spawnRoot, true); }
                     break;
 
-                case 3: 
+                case 3:
                     if (cubeMovingLanePool.TryGet(pos, out var o3))
                     {
-                        SetupHorizontalMove(o3.transform, laneCount, laneStep);
+                        SetupHorizontalMove(o3.transform, laneCount, laneStep, lanePadding);  // â† Ð¿ÐµÑ€ÐµÐ´Ð°Ñ”Ð¼Ð¾ padding
                         o3.transform.SetParent(seg.spawnRoot, true);
                     }
                     break;
 
-                case 4: 
+                case 4:
                     if (rectMovingVerticalPool.TryGet(pos, out var o4))
                     {
-                        SetupVerticalMove(o4.transform, baseY: groundY, amplitude: 1.0f, speed: Random.Range(0.6f, 1.2f));
+                        GroundUtil.SnapToGround(o4.transform, groundMask, 4f, 0.02f);
+                        SetupVerticalMove(o4.transform, amplitude: 1.0f, speed: Random.Range(0.6f, 1.2f));
                         o4.transform.SetParent(seg.spawnRoot, true);
                     }
                     break;
@@ -268,7 +269,7 @@ public class SegmentSpawner : MonoBehaviour
         }
     }
 
-    private static void SetupHorizontalMove(Transform t, int laneCount, float laneStep)
+    private static void SetupHorizontalMove(Transform t, int laneCount, float laneStep, int lanePadding)
     {
         var h = t.GetComponent<ObstacleLaneMover>();
         var v = t.GetComponent<ObstacleVerticalMover>();
@@ -277,30 +278,37 @@ public class SegmentSpawner : MonoBehaviour
         if (h)
         {
             h.enabled = true;
-            h.Setup(laneCount, laneStep);
+            h.Setup(laneCount, laneStep, lanePadding);     
         }
     }
 
-    private static void SetupVerticalMove(Transform t, float baseY, float amplitude, float speed)
+    private static void SetupVerticalMove(Transform t, float amplitude, float speed)
     {
         var h = t.GetComponent<ObstacleLaneMover>(); if (h) h.enabled = false;
         var v = t.GetComponent<ObstacleVerticalMover>();
         if (v)
         {
             v.enabled = true;
-            v.Setup(baseY, amplitude, speed);
+            v.SetupFromCurrent(amplitude, speed);
         }
     }
 
 
-    private int PickLane()
+    private int PickPlayableLane()
     {
+        if (minLanePlayable == maxLanePlayable)
+        { 
+            return minLanePlayable;
+        }
+
         if (!coinsCenterWeighted)
         { 
-            return Random.Range(-_half, _half + 1);        
+            return Random.Range(minLanePlayable, maxLanePlayable + 1);
         }
+
+        // triangular distribution to the center within playable
         float t = Random.value;
         float tri = 1f - Mathf.Abs(t * 2f - 1f);
-        return Mathf.RoundToInt(Mathf.Lerp(-_half, _half, tri));
+        return Mathf.RoundToInt(Mathf.Lerp(minLanePlayable, maxLanePlayable, tri));
     }
 }
