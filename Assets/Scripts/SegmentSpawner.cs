@@ -219,9 +219,13 @@ public class SegmentSpawner : MonoBehaviour
         {
             var t = seg.spawnRoot.GetChild(i);
             if (t.TryGetComponent<PooledBehaviour>(out var pooled))
+            {
                 pooled.Despawn();
+            }
             else
+            { 
                 t.gameObject.SetActive(false);
+            }
         }
     }
 
@@ -241,6 +245,7 @@ public class SegmentSpawner : MonoBehaviour
 
             // Avoid placing coins inside obstacles
             Vector3 rayOrigin = new Vector3(x, rayHeight, z);
+
             if (Physics.Raycast(rayOrigin, Vector3.down, out var hit, rayHeight * 2f, obstacleMask))
             { 
                 continue;
@@ -248,7 +253,9 @@ public class SegmentSpawner : MonoBehaviour
 
             float y = coinY;
             if (coinPool.TryGet(new Vector3(x, y, z), out var coin))
+            { 
                 coin.transform.SetParent(seg.spawnRoot, true);
+            }
         }
     }
 

@@ -19,7 +19,6 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float extraFallGravity = 15f;       // additional gravity while falling
     [SerializeField] private float lowJumpGravity = 12f;         // lowering height 
 
-
     [Header("Lanes")]
     [SerializeField] private int laneCount = 7;             // Total number of horizontal lanes
     [SerializeField] private float laneStep = 1f;           // Distance in world units between lanes
@@ -27,9 +26,6 @@ public class PlayerController : MonoBehaviour
 
     [Header("Jump")]
     [SerializeField] private float jumpForce = 6f;          // Upward impulse applied during jump
-    [SerializeField] private Transform groundCheck;         // Position used for ground detection sphere
-    [SerializeField] private float groundRadius = 0.2f;     // Radius of ground detection sphere
-    [SerializeField] private LayerMask groundMask;          // Layers considered as ground
 
     private Animator myAnimator;
     private Rigidbody rb;
@@ -83,13 +79,6 @@ public class PlayerController : MonoBehaviour
         {
             targetLane = Mathf.Min(targetLane + 1, maxLane);
         }
-
-        // Ground detection
-        grounded = Physics.CheckSphere(
-            groundCheck.position,
-            groundRadius,
-            groundMask,
-            QueryTriggerInteraction.Ignore);
 
         // Holding jump button
         if (Input.GetKeyDown(KeyCode.Space)) jumpHeld = true;
@@ -151,7 +140,20 @@ public class PlayerController : MonoBehaviour
             currentLane = targetLane;
         }
     }
-
+    void OnCollisionEnter(Collision other)
+    {
+        if (other.gameObject.tag == "Ground")
+        {
+            grounded = true;
+        }
+    }
+    void OnCollisionExit(Collision other)
+    {
+        if (other.gameObject.tag == "Ground")
+        {
+            grounded = false;
+        }
+    }
 
     /// Stops all movement and switches animation to idle/standing.
     public void Halt(bool freezeRigidBody = true)
