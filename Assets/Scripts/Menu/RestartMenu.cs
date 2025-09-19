@@ -21,5 +21,13 @@ public class RestartMenu : MonoBehaviour
         SceneManager.LoadScene("Game");
     }
 
-
+    public void OnExitGameClicked()
+    {
+        // Check if the application is running in the editor
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
 }

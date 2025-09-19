@@ -14,6 +14,12 @@ public class PlayerController : MonoBehaviour
     [Header("Forward")]
     [SerializeField] private float forwardSpeed = 10f;      // Constant forward speed
 
+    [Header("Air Control")]
+    [SerializeField] private float airForwardMultiplier = 0.55f; // 55% from ground speed
+    [SerializeField] private float extraFallGravity = 15f;       // additional gravity while falling
+    [SerializeField] private float lowJumpGravity = 12f;         // lowering height 
+
+
     [Header("Lanes")]
     [SerializeField] private int laneCount = 7;             // Total number of horizontal lanes
     [SerializeField] private float laneStep = 1f;           // Distance in world units between lanes
@@ -32,6 +38,7 @@ public class PlayerController : MonoBehaviour
     private int currentLane = 0;        // Player's current lane index
     private int targetLane = 0;         // Lane index player is moving toward
     private bool grounded;              // True if the player is standing on ground
+    private bool jumpHeld;
 
     private bool canMove = true;        // Global movement lock
 
@@ -84,6 +91,10 @@ public class PlayerController : MonoBehaviour
             groundMask,
             QueryTriggerInteraction.Ignore);
 
+        // Holding jump button
+        if (Input.GetKeyDown(KeyCode.Space)) jumpHeld = true;
+        if (Input.GetKeyUp(KeyCode.Space)) jumpHeld = false;
+
         // Jump
         if (grounded && Input.GetKeyDown(KeyCode.Space))
         {
@@ -92,7 +103,7 @@ public class PlayerController : MonoBehaviour
             v.y = 0;
             rb.linearVelocity = v;
 
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);            
         }
     }
 
@@ -103,6 +114,23 @@ public class PlayerController : MonoBehaviour
     void FixedUpdate()
     {
         if (!canMove) return;
+
+        if (!grounded)
+        {
+            if (rb.linearVelocity.y < 0f)
+            {
+                // falling
+                rb.AddForce(Vector3.down * extraFallGravity, ForceMode.Acceleration);
+            }
+            else if (!jumpHeld)
+            {
+                // “low jump” — not holding button - short jump
+                rb.AddForce(Vector3.down * lowJumpGravity, ForceMode.Acceleration);
+            }
+        }
+
+        // Moving forward with airForwardMultiplier 
+        float forward = forwardSpeed * (grounded ? 1f : airForwardMultiplier);
 
         Vector3 start = rb.position;
 
