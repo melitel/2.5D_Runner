@@ -8,7 +8,7 @@ public class Obstacle : PooledBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player")) return;
-        Debug.Log($"[Obstacle] Trigger with {other.name} at {Time.time:F2}");
+        //Debug.Log($"[Obstacle] Trigger with {other.name} at {Time.time:F2}");
         playerCrashed?.Raise(other.transform.position);
     }
 }

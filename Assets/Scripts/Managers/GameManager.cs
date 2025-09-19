@@ -12,8 +12,11 @@ public class GameManager : MonoBehaviour
     [SerializeField] private PlayerController player;
 
     private void Start()
-    {        
-        if (player) player.ResetForNewRun();
+    {
+        if (player)
+        { 
+            player.ResetForNewRun();
+        }
     }
     void OnEnable() 
     {

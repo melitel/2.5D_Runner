@@ -15,12 +15,18 @@ public class CollectibleManager : MonoBehaviour
 
     private void OnEnable()
     {
-        if (coinCollected) coinCollected.OnEventRaised += OnCoinCollected;
+        if (coinCollected)
+        { 
+            coinCollected.OnEventRaised += OnCoinCollected;
+        }
     }
 
     private void OnDisable()
     {
-        if (coinCollected) coinCollected.OnEventRaised -= OnCoinCollected;
+        if (coinCollected)
+        { 
+            coinCollected.OnEventRaised -= OnCoinCollected;
+        }
         PlayerPrefs.SetInt(LastScoreKey, Score);
         PlayerPrefs.Save();
     }
